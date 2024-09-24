@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Annotator</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #f0f0f0;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+      }
+
+      .logout-button {
+        background-color: #ff4d4d;
+        color: white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .logout-button:hover {
+        background-color: #d43f3f;
+      }
+
+      .wrapper {
+        width: 100%;
+        max-width: 960px;
+        margin: 20px;
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        background-color: #fafafa;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .text-column {
+        width: 50%;
+        font-size: 16px;
+        line-height: 1.5;
+        max-height: 100px; /* Limit height */
+        overflow-y: auto; /* Make scrollable */
+        padding-right: 10px;
+        box-sizing: border-box;
+      }
+
+      .text-column::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .text-column::-webkit-scrollbar-thumb {
+        background-color: #ccc;
+        border-radius: 3px;
+      }
+
+      .button-column {
+        width: 45%;
+        display: flex;
+        flex-wrap: nowrap; /* Keep buttons in one row */
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      /* Styling for radio button labels */
+      .button-column label {
+        display: inline-block;
+        padding: 10px 15px;
+        background-color: #f0f0f0;
+        border: 2px solid transparent;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap; /* Prevent text wrapping */
+        font-size: 14px;
+        text-align: center;
+      }
+
+      /* Make selected radio button visually different */
+      .button-column input[type="radio"] {
+        display: none; /* Hide the actual radio input */
+      }
+
+      .button-column input[type="radio"]:checked + label {
+        background-color: #007bff;
+        color: white;
+        border-color: #007bff;
+      }
+
+      .button-column label:hover {
+        background-color: #e0e0e0;
+      }
+
+      /* Adjust button widths and alignment */
+      button {
+        padding: 8px 12px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        font-size: 14px;
+        white-space: nowrap; /* Prevent buttons from getting too wide */
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      /* Ensure buttons don't stretch across the full width */
+      button[type="submit"] {
+        width: auto;
+      }
+
+      /* Styling for the top row buttons (First, Previous, Next, Next Unannotated) */
+      .top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .left-buttons,
+      .right-buttons {
+        display: flex;
+        gap: 10px; /* Space between the buttons */
+      }
+
+      /* Modal Styles */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-content {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 80%;
+        max-height: 80%;
+        overflow-y: auto; /* Scroll if content overflows */
+      }
+
+      .modal-content h2 {
+        margin-top: 0;
+      }
+
+      .modal-content p {
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <h1>Text Annotation Tool</h1>
+      <div class="header">
+        <h2>Annotator: {{ annotator_name }}</h2>
+        <a href="{{ url_for('logout') }}">
+          <button class="logout-button">Logout</button>
+        </a>
+      </div>
+
+      <div>
+        <p>Document: {{ current_index+1 }}/{{ total_rows }}</p>
+        {% if is_annotated %}
+        <p style="color: green; font-weight: bold">
+          This document has already been annotated by you. {% if current_index+1
+          == total_rows %} No more documents to annotate. {% endif %}
+        </p>
+        {% endif %}
+      </div>
+      <form method="POST">
+        <input type="hidden" name="row_id" value="{{ row_id }}" />
+        <!-- Top row with buttons and n/total count -->
+        <div class="top-row">
+          <!-- Left side: First and Previous buttons -->
+          <div class="left-buttons">
+            {% if current_index %}
+            <button type="submit" name="first">First</button>
+            <button type="submit" name="previous">Previous</button>
+            {% endif %}
+          </div>
+
+          <!-- Center: n/total count -->
+          <div class="count-display">
+            <p>Document: {{ current_index }}/{{ total_rows }}</p>
+          </div>
+
+          <!-- Right side: Next and Next Unannotated buttons -->
+          <div class="right-buttons">
+            {% if current_index < total_rows and is_annotated %}
+            <button type="submit" name="next">Next</button>
+            <button type="submit" name="last">Last</button>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Annotation form content starts here -->
+        <div class="container">
+          {% for i, line in enumerate(text_lines) %}
+          <div class="row">
+            <div class="text-column">{{ line }}</div>
+            <div class="button-column">
+              <input type="radio" name="annotation_{{ i }}" value="Clean"
+              id="clean_{{ i }}" {% if not user_annotation or user_annotation[i]
+              == "Clean" %} checked {% endif %} />
+              <label for="clean_{{ i }}">Clean</label>
+
+              <input type="radio" name="annotation_{{ i }}" value="Boilerplate"
+              id="boilerplate_{{ i }}" {% if user_annotation and
+              user_annotation[i] == "Boilerplate" %} checked {% endif %} />
+              <label for="boilerplate_{{ i }}">Boilerplate</label>
+
+              <input type="radio" name="annotation_{{ i }}" value="Navigational"
+              id="navigational_{{ i }}" {% if user_annotation and
+              user_annotation[i] == "Navigational" %} checked {% endif %} />
+              <label for="navigational_{{ i }}">Navigational</label>
+
+              <input type="radio" name="annotation_{{ i }}" value="Noise"
+              id="noise_{{ i }}" {% if user_annotation and user_annotation[i] ==
+              "Noise" %} checked {% endif %} />
+              <label for="noise_{{ i }}">Noise</label>
+
+              <input type="radio" name="annotation_{{ i }}" value="Metadata"
+              id="metadata_{{ i }}" {% if user_annotation and user_annotation[i]
+              == "Metadata" %} checked {% endif %} />
+              <label for="metadata_{{ i }}">Metadata</label>
+
+              <input type="radio" name="annotation_{{ i }}" value="Code"
+              id="code_{{ i }}" {% if user_annotation and user_annotation[i] ==
+              "Code" %} checked {% endif %} />
+              <label for="code_{{ i }}">Code</label>
+
+              <input type="radio" name="annotation_{{ i }}" value="Structured"
+              id="structured_{{ i }}" {% if user_annotation and
+              user_annotation[i] == "Structured" %} checked {% endif %} />
+              <label for="structured_{{ i }}">Structured</label>
+
+              <input type="radio" name="annotation_{{ i }}" value="Other Junk"
+              id="other_{{ i }}" {% if user_annotation and user_annotation[i] ==
+              "Other Junk" %} checked {% endif %} />
+              <label for="other_{{ i }}">Other Junk</label>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <br />
+
+        <!-- Save Annotations button (remains at the bottom) -->
+        <div style="text-align: center">
+          <button type="submit" name="save" style="width: 75%">
+            {% if is_annotated %}Update{% else %}Save{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Modal -->
+    <div id="taxonomyModal" class="modal">
+      <div class="modal-content">
+        <h2>Taxonomy of Categories</h2>
+        <p>
+          <strong>Clean</strong>: Any content that represents natural language
+          use, including informal internet language, questions, partial
+          sentences, common online expressions, and normal advertising or
+          commercial language. This includes properly formatted titles,
+          headings, and content structured for readability (even with stylistic
+          elements like vertical bars, slashes, etc.).
+        </p>
+        <p>
+          <strong>Boilerplate</strong>: Standardized, repetitive text that
+          repeats across multiple pages or documents, such as disclaimers,
+          copyright notices, terms and conditions, CAPTCHAs, duplicate lines,
+          and some commercial spam that seems boilerplate.
+        </p>
+        <p>
+          <strong>Navigational</strong>: Content specifically designed for
+          navigating or structuring a webpage or application, such as menus,
+          buttons, links (e.g., "Home", "About Us"), or instructions for
+          interacting with a login, form, or system interface (e.g., "Log In",
+          "Submit", "Enter your ECode").
+        </p>
+        <p>
+          <strong>Noise</strong>: Garbled, nonsensical, or corrupt text, and any
+          other noise that a human would find incomprehensible.
+        </p>
+        <p>
+          <strong>Metadata</strong>: Lines that provide URLs, email addresses,
+          metadata, dates, times, or other metadata without any additional
+          context.
+        </p>
+        <p>
+          <strong>Code</strong>: Lines containing programming code, HTML tags,
+          or markup languages not relevant to natural language understanding.
+          Importantly: discussion of code (e.g. "Copy the code to your website")
+          are <em>not</em> Code, but Clean!
+        </p>
+        <p>
+          <strong>Structured</strong>: Structured collections of keywords, tags,
+          statistics, tabular data without context or other similar data
+          presented without sufficient context. Note: Lists or itemized content
+          should be classified as Clean.
+        </p>
+        <p>
+          <strong>Other Junk</strong>: Clearly non-informative or irrelevant
+          content that doesn't fit into any of the other categories, as well as
+          primarily non-English text (single words or phrases in English context
+          do not qualify as Other Junk).
+        </p>
+
+        <h3>
+          Examples of Junk Categories (Boilerplate, Navigational, Noise,
+          Metadata, Code, Structured, Other Junk):
+        </h3>
+
+        <h4>Boilerplate</h4>
+        <ul>
+          <li>"All rights reserved."</li>
+          <li>"© 2023 Company Name."</li>
+          <li>
+            "best online casino, online casino games, online casino bonus"
+          </li>
+        </ul>
+
+        <h4>Navigational</h4>
+        <ul>
+          <li>"Back to Top"</li>
+          <li>"&lt;- Back - All - Next ->"</li>
+          <li>
+            "personalized baby Gifts | site map | personalized name trains | new
+            affiliates | privacy |"
+          </li>
+        </ul>
+
+        <h4>Noise</h4>
+        <ul>
+          <li>"aaaaaa"</li>
+          <li>"- - -"</li>
+          <li>". . . . . ."</li>
+        </ul>
+
+        <h4>Metadata</h4>
+        <ul>
+          <li>"http://www.example.com"</li>
+          <li>"12:30 PM"</li>
+          <li>"Page 1 of 10"</li>
+        </ul>
+
+        <h4>Code</h4>
+        <ul>
+          <li>"&lt;div class='content'&gt;"</li>
+          <li>"print('Hello, World!')"</li>
+          <li>"SELECT * FROM users WHERE id = 1;"</li>
+        </ul>
+
+        <h4>Structured</h4>
+        <ul>
+          <li>"technology, innovation, science"</li>
+          <li>"Team A 3 - 2 Team B"</li>
+          <li>"Product, Price, Quantity"</li>
+        </ul>
+
+        <h4>Other Junk</h4>
+        <ul>
+          <li>"Wikipedia sobre física de partículas"</li>
+          <li>"(h/t Balloon Juice)"</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // JavaScript to handle the modal display and hiding
+      let modal = document.getElementById("taxonomyModal");
+      let modalVisible = false;
+
+      // Function to toggle the modal
+      function toggleModal() {
+        modalVisible = !modalVisible;
+        if (modalVisible) {
+          modal.style.display = "flex"; // Show modal
+        } else {
+          modal.style.display = "none"; // Hide modal
+        }
+      }
+
+      // Event listener for 'q' key press
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "q") {
+          toggleModal();
+        }
+      });
+    </script>
+  </body>
+</html>
