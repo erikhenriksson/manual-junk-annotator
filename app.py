@@ -2,7 +2,9 @@ import jsonlines
 from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"
+app.secret_key = "1a49uoqij_ahkdvbGtki3lurq"
+app = Flask(__name__)
+app.config["APPLICATION_ROOT"] = "/junklabeling"
 
 # Path to the JSONL file
 DATA_FILE = "data.jsonl"
